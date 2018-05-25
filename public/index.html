@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="/socket.io/socket.io.js"></script>
+    <title>Webcam live</title>
+</head>
+
+<body>
+
+    <video style="width:600px;height:350px;display:none;" src="" id="video" autoplay="true">
+    </video>
+    <canvas id="preview">
+    </canvas>
+    <canvas id="result"></canvas>
+
+    <script>
+
+        var chuncks = [];
+
+        var video = document.getElementById('video');
+        var canvas = document.getElementById('preview');
+        var result = document.getElementById('result');
+        var context = canvas.getContext('2d');
+        var context2 = result.getContext('2d');
+
+        canvas.width = 800;
+        canvas.height = 600;
+        result.width = canvas.width;
+        result.height = canvas.height;
+
+        context.width = canvas.width;
+        context.height = canvas.height;
+
+        var socket = io();
+
+        socket.on('play', function(chunk){
+
+            chuncks = [];
+            chuncks.push(chunk);
+            var image = new Image();
+            image.onload = function() {
+                context2.drawImage(image, 0, 0);
+            };
+
+            image.src = 'data:image/png;base64,' + window.btoa(chuncks);
+        });
+
+        function loadCamera(stream) {
+
+            video.src = window.URL.createObjectURL(stream);
+        }
+
+        function loadFail() {
+
+
+        }
+
+        function viewVideo(video, context) {
+            context.drawImage(video, 0,0,context.width, context.height);
+            socket.emit('stream', canvas.toDataURL('image/jpeg', 0.5));
+        }
+
+        (function () {
+            navigator.getUserMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msgGetUserMedia);
+
+
+            if(navigator.getUserMedia){
+                navigator.getUserMedia({
+                    video: true
+                }, loadCamera , loadFail);
+            }
+
+            setInterval(function(){
+
+                viewVideo(video, context);
+            }, 170);
+        })();
+    </script>
+</body>
+
+</html>
